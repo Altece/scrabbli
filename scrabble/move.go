@@ -35,3 +35,13 @@ func (m *move) Iter() <-chan Chip {
 func (m *move) Add(chip Chip) {
 	m.chips = append(m.chips, chip)
 }
+
+func (m *move) SliceRep() []map[string]interface{} {
+	representation := make([]map[string]interface{}, len(m.chips))
+	index := 0
+	for chip := range m.Iter() {
+		representation[index] = chip.MapRep()
+		index += 1
+	}
+	return representation
+}

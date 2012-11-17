@@ -108,3 +108,12 @@ func (c *chip) Points() int {
 	}
 	return 0;
 }
+
+func (c *chip) MapRep() map[string]interface{} {
+	representation := map[string]interface{} {
+		"Rune" 		: c.r,
+		"Points" 	: c.Points(),
+		"X" 		: c.x,
+		"Y" 		: c.y 	}
+	return representation
+}

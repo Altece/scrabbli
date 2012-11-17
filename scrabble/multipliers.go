@@ -15,10 +15,26 @@ const (
 	triple_word_score
 )
 
+func (m Multiplier) string() string {
+	switch m {
+	case normal:
+		return "NORMAL"
+	case double_letter_score:
+		return "DOUBLE LETTER SCORE"
+	case triple_letter_score:
+		return "TRIPLE LETTER SCORE"
+	case double_word_score:
+		return "DOUBLE WORD SCORE"
+	case triple_word_score:
+		return "TRIPLE WORD SCORE"
+	}
+	return ""
+}
+
 // this is for a 15 x 15 board only (for now)
 // idk how to make scrabble boards of indefinite size...
 func (b *board) multiplier(x, y int) Multiplier {
-	max_x, max_y := b.length-1, b.width-1
+	max_x, max_y := b.width-1, b.height-1
 
 	outside := func(a, b int) bool {
 		xInside := x >= a && x <= b
@@ -33,7 +49,7 @@ func (b *board) multiplier(x, y int) Multiplier {
 	}
 
 
-	// tripple word score
+	// triple word score
 	// outer grid of halfs
 	if (x % (max_x/2) == 0) && (y % (max_y/2) == 0) {
 		return triple_word_score

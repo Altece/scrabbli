@@ -13,6 +13,14 @@ type Chip interface {
 
 	// get the points for the chip's rune
 	Points() int
+
+	// get a map representation of the chip
+	// this will have 3 entries:
+	// 	"Rune"		- the rune for the chip
+	// 	"Points" 	- the points value of the chip (without multipliers)
+	//	"X"			- the x coordinate
+	//	"Y"			- the y coordinate
+	MapRep() map[string]interface{}
 }
 
 // an interface for interacting with a move for a scrabble board
@@ -28,6 +36,10 @@ type Move interface {
 
 	// add a chip to the move
 	Add(chip Chip)
+
+	// get a slice representation of the move
+	// this will contain chip map representations
+	SliceRep() []map[string]interface{}
 }
 
 // an interface for interacting with a scrabble board
@@ -50,6 +62,15 @@ type Board interface {
 	// the bool is true if successful, false otherwise
 	// if the move is not successful, the int value is 0
 	MakeMove(m Move) (int, bool)
+
+	// get an array of arrays to represent the board
+	//
+	// eacy array represents one row within the board.
+	//
+	// Each element in a row's array will be a either one of two things:
+	//	1) the string representation of the type of multiplier the space represents
+	//	2) the map representation of a chip
+	SliceRep() [][]interface{}
 }
 
 func WorkingMessage() string {

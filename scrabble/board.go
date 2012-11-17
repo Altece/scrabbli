@@ -9,7 +9,7 @@ type space struct {
 // a struct to represent the board
 type board struct {
 	grid			[][]*space 	// a 2D array to represent the board
-	length, width	int 		// the length and width of the board
+	height, width	int 		// the height and width of the board
 }
 
 func NewBoard() Board {
@@ -19,7 +19,7 @@ func NewBoard() Board {
 // check to see if the given x y coordinates are within the bounds of the board
 func (b *board) WithinBounds(x, y int) bool {
 	if x >= 0 && y >= 0 {
-		if x < b.length && y < b.width {
+		if x < b.width && y < b.height {
 			return true
 		}
 	}
@@ -36,13 +36,13 @@ func (b *board) MultiplierForSpace(x, y int) Multiplier {
 
 func (b *board) Init() Board {
 	// set up the width
-	length, width := 15, 15
-	b.length, b.width = length, width
+	height, width := 15, 15
+	b.height, b.width = height, width
 
 	// initialize the grid
-	b.grid = make([][]*space, length)
+	b.grid = make([][]*space, width)
 	for x, _ := range b.grid {
-		b.grid[x] = make([]*space, width)
+		b.grid[x] = make([]*space, height)
 		for y, _ := range b.grid[x] {
 			b.grid[x][y] = new(space)
 			b.grid[x][y].chip = nil
@@ -115,4 +115,23 @@ func (b *board) MakeMove(m Move) (int, bool) {
 		return points, true
 	}
 	return 0, false
+}
+
+func (b *board) SliceRep() [][]interface{} {
+	representation := make([][]interface{}, b.height)
+
+	for y := 0; y < b.height; y+=1 {
+
+		representation[y] = make([]interface{}, b.width)
+		for x := 0; x < b.width; x+=1 {
+
+			if b.grid[x][y].chip == nil {
+				representation[y][x] = b.grid[x][y].chip.MapRep()
+			} else {
+				representation[y][x] = b.grid[x][y].multiplier.string()
+			}
+		}
+	}
+
+	return representation
 }
