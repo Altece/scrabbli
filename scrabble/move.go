@@ -27,6 +27,7 @@ func (m *move) Iter() <-chan Chip {
 		for _, chip := range m.chips {
 			chips_chan <- chip
 		}
+		close(chips_chan)
 	}()
 
 	return chips_chan

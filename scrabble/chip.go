@@ -1,6 +1,9 @@
 package scrabble
 
-import "sync"
+import (
+	"sync"
+	"strings"
+)
 
 // a singleton representation of the points map
 // this map is guaranteed to only be created once
@@ -71,14 +74,9 @@ type chip struct {
 // return either the capital version of the given rune 
 // (if it is not already capital), or a space
 func capitalRune(r rune) rune {
-	if (r >= 'A' && r <= 'Z') || r == ' ' {
-		return r
-	}
-
-	value := int(r) - int('a')
-	result := value + int('A')
-
-	return rune(result)
+	str := string(append(rune(""), r))
+	upper := strings.ToUpper(str)
+	return upper[0]
 }
 
 // make a new chip instance
