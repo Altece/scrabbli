@@ -12,8 +12,8 @@ type DictNode interface {
 	Find(word string) bool
 
 	// find all possible dictionary word matches for the given slice of runes
-	// returns a channel of all possible words
-	FindAllPossible(runes []rune) <-chan string
+	// returns a channel of all possible rune combinations
+	FindAllPossible(runes []rune) <-chan []rune
 }
 
 // a node data structure for a dictionary trie
@@ -65,7 +65,7 @@ func (n *dictNode) Find(word string) bool {
 	return false
 }
 
-func (n *dictNode) FindAllPossible(runes []rune) <-chan string {
+func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 	results := make(chan string, 100)
 	searchStart := make(chan int, 1)
 	searchFinish := make(chan int, 1)
@@ -88,8 +88,8 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan string {
 		}
 	}
 
-	var find func(n *dictNode, runes []rune, word string)
-	find = func(n *dictNode, runes []rune, word string) {
+	var find func(n *dictNode, runes []rune, word []rune)
+	find = func(n *dictNode, runes []rune, word []rune) {
 		searchStart <- 1
 
 		if n.wordEnd { results <- word; }
@@ -100,12 +100,12 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan string {
 				newRunes := append(runes[:index], runes[index+1:]...)
 
 				if rune == SPECIAL {
-					for rune, node := range n.nodes {
-						go find(node, newRunes, string(append([]rune(word), rune)))
+					for _, node := range n.nodes {
+						go find(node, newRunes, append(word, rune)))
 					}
 				} else {
 					if node, nodeExists := n.nodes[rune]; nodeExists {
-						go find(node, newRunes, string(append([]rune(word), rune)))
+						go find(node, newRunes, append(word, rune)))
 					}
 				}
 			}			
@@ -114,7 +114,7 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan string {
 		searchFinish <- -1
 	}
 
-	go find(n, runes, "")
+	go find(n, runes, make([]rune, 0))
 
 	return results
 }

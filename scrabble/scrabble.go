@@ -50,6 +50,12 @@ type Board interface {
 	// get the rune at the given x y coordinates
 	ChipAtSpace(x, y int) Chip
 
+	// get the center of the board
+	Center() (x, y int)
+
+	// iterate through all placed chips
+	PlacedChipIter() <-chan Chip
+
 	// checks to see if the given move is valid for the game board
 	IsMoveValid(m Move) bool
 
