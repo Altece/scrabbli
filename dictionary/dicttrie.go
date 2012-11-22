@@ -1,5 +1,7 @@
 package dictionary
 
+import "sync"
+
 // this is a special wildcard character
 const WILDCARD rune = ' '
 
@@ -67,24 +69,17 @@ func (n *dictNode) Find(word string) bool {
 
 func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 	results := make(chan []rune, 100)
-	signalchan := make(chan int, 100)
+
+	var waitGroup sync.WaitGroup
 
 	// make sure the results channel is eventually closed
 	go func() {
-		count := <-signalchan
-		for {
-			count += <-signalchan
-
-			if count == 0 {
-				close(results)
-				return
-			}
-		}
+		waitGroup.Wait()
+		close(results)
 	}()
 
 	var find func(n *dictNode, runes []rune, word []rune)
 	find = func(n *dictNode, runes []rune, word []rune) {
-		signalchan <- 1
 
 		if n.wordEnd { results <- word; }
 		
@@ -95,19 +90,22 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 
 				if rune == WILDCARD {
 					for _, node := range n.nodes {
-						find(node, newRunes, append(word, rune))
+						waitGroup.Add(1)
+						go find(node, newRunes, append(word, rune))
 					}
 				} else {
 					if node, nodeExists := n.nodes[rune]; nodeExists {
-						find(node, newRunes, append(word, rune))
+						waitGroup.Add(1)
+						go find(node, newRunes, append(word, rune))
 					}
 				}
 			}			
 		}
 
-		signalchan <- -1
+		waitGroup.Done()
 	}
 
+	waitGroup.Add(1)
 	go find(n, runes, make([]rune, 0))
 
 	return results

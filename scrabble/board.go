@@ -85,15 +85,7 @@ func (b *board) PlacedChipIter() <-chan Chip {
 
 func (b *board) IsMoveValid(m Move) bool {
 	for chip := range m.Iter() {
-		print("checking chip: ")
-		println(chip)
-		print("\t")
-		print(string(chip.Rune()))
 		x, y := chip.Position()
-		print(" ")
-		print(x)
-		print(" ")
-		println(y)
 		if !b.WithinBounds(x, y) {
 			return false
 		} else if other := b.ChipAtSpace(x, y); other != nil {
