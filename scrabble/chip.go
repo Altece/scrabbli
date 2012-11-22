@@ -1,15 +1,15 @@
 package scrabble
 
 import (
-	//"sync"
+	"sync"
 	"strings"
 )
 
 // a singleton representation of the points map
 // this map is guaranteed to only be created once
 type points_singleton struct {
-	//sync.Once
-	initialized 	bool
+	sync.Once
+	// initialized 	bool
 	points 			map[rune]int
 }
 
@@ -18,8 +18,8 @@ var points_holder points_singleton
 
 // get the initialized points map
 func points() map[rune]int {
-	// points_holder.Do( func(){
-	if !points_holder.initialized {
+	points_holder.Do( func(){
+	// if !points_holder.initialized {
 		points_holder.points = map[rune]int{
 			// 0 points
 			' ': 0,
@@ -63,8 +63,8 @@ func points() map[rune]int {
 			// 10 points
 			'Q': 10,
 			'Z': 10	}
-	// } )
-	}
+	} )
+	// }
 	return points_holder.points
 }
 
