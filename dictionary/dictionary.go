@@ -9,7 +9,8 @@ import (
 // an interface for a Dictionary of words
 type Dictionary interface {
 	// initialize the dictionary with the given file
-	Init(filename string) Dictionary
+	// returns the dictionary and a bool flag for file success
+	Init(filename string) (Dictionary, bool)
 
 	// a dictionary is also a dictionary node
 	DictNode

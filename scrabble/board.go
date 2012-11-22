@@ -61,8 +61,8 @@ func (b *board) ChipAtSpace(x, y int) Chip {
 }
 
 func (b *board) Center() (x, y int) {
-	x := b.width / 2
-	y := b.height / 2
+	x = b.width / 2
+	y = b.height / 2
 	return x, y
 }
 
@@ -72,7 +72,7 @@ func (b *board) PlacedChipIter() <-chan Chip {
 	go func() {
 		for x := 0; x < b.width; x+=1 {
 			for y := 0; y < b.height; y+=1 {
-				if c := b.gird[x][y].chip; c != nil {
+				if c := b.grid[x][y].chip; c != nil {
 					chips <- c
 				}
 			}
@@ -85,7 +85,15 @@ func (b *board) PlacedChipIter() <-chan Chip {
 
 func (b *board) IsMoveValid(m Move) bool {
 	for chip := range m.Iter() {
+		print("checking chip: ")
+		println(chip)
+		print("\t")
+		print(string(chip.Rune()))
 		x, y := chip.Position()
+		print(" ")
+		print(x)
+		print(" ")
+		println(y)
 		if !b.WithinBounds(x, y) {
 			return false
 		} else if other := b.ChipAtSpace(x, y); other != nil {

@@ -1,11 +1,15 @@
-package scrabble/solver
+package solver
 
-import "../../dictionary"
+import (
+	. "../scrabble"
+	"../dictionary"
+)
 
 // an interface for a solver
 type Solver interface {
 	// initialize the solver with the given board and dictionary file name
-	Init(board Board, dictionaryFilename string) Solver
+	// returns the solver and a bool flag for file success
+	Init(board Board, dictionaryFilename string) (Solver, bool)
 
 	// find the next best move for the given set of chips
 	// and all the available chips on the baord
@@ -15,19 +19,20 @@ type Solver interface {
 // data for a solver
 type solver struct {
 	board 	Board 		// the board for the solver
-	dict 	Dictionary 	// the dictionary for the solver
+	dict 	dictionary.Dictionary 	// the dictionary for the solver
 }
 
 // create a new solver object
 func NewSolver() *solver {
-	s := new(Solver)
+	s := new(solver)
 	return s
 }
 
-func (s *solver) Init(board Board, dictionaryFilename string) *solver {
+func (s *solver) Init(board Board, dictionaryFilename string) (Solver, bool) {
 	s.board = board
-	s.dict = dictionary.NewDictionary().Init(filename string)
-	return s
+	var success bool
+	s.dict, success = dictionary.NewDictionary().Init(dictionaryFilename)
+	return s, success
 }
 
 func (s *solver) SolveForChips(chips []Chip) Move {
@@ -52,7 +57,7 @@ func (s *solver) SolveForChips(chips []Chip) Move {
 	// for all the available pieces
 	for availablePiece := range s.availableMoveSpaces() {
 		if availablePiece != nil { // if there are pieces
-			
+
 			runes = append(runes, availablePiece.Rune())
 			moves = genMoves(runes, availablePiece)
 
@@ -79,7 +84,7 @@ const (
 
 // get the direction that the move around the given chip should be
 func (s *solver) moveDirection(pivotChip Chip) move_direction {
-	chipX, chipY := chip.Position()
+	chipX, chipY := pivotChip.Position()
 	above 	:= s.board.ChipAtSpace(chipX, chipY-1)
 	below 	:= s.board.ChipAtSpace(chipX, chipY+1)
 	left 	:= s.board.ChipAtSpace(chipX-1, chipY)
@@ -96,26 +101,30 @@ func (s *solver) moveDirection(pivotChip Chip) move_direction {
 // head is a collection of runes that preceed the pivot chip
 // tail it a collection of runes that follow the pivot chip
 // the pivot chip has a defined position and a rune
-func (s *solver) chipSliceAroundPiviot(head []rune, pivotChip Chip, tail []rune) {
-	chips := make([]Chip, len(head) + len(tail) + 1)
+func (s *solver) chipSliceAroundPiviot(head []rune, pivotChip Chip, tail []rune) []Chip {
+	var chips []Chip
 
 	x, y := pivotChip.Position()
 	switch s.moveDirection(pivotChip) {
 	case down:
 		for index, rune := range head {
-			chips[index] = NewChip().Init(rune, x, y-(len(head)-index))
+			newChip := NewChip().Init(rune, x, y-(len(head)-index))
+			chips = append(chips, newChip)
 		}
-		chips[len(head)] = pivotChip
+		chips = append(chips, pivotChip)
 		for index, rune := range tail {
-			chips[index] = NewChip().Init(rune, x, y+1+index)
+			newChip := NewChip().Init(rune, x, y+1+index)
+			chips = append(chips, newChip)
 		}
 	case across:
 		for index, rune := range head {
-			chips[index] = NewChip().Init(rune, x-(len(head)-index), y)
+			newChip := NewChip().Init(rune, x-(len(head)-index), y)
+			chips = append(chips, newChip)
 		}
-		chips[len(head)] = pivotChip
+		chips = append(chips, pivotChip)
 		for index, rune := range tail {
-			chips[index] = NewChip().Init(rune, x+1+index, y)
+			newChip := NewChip().Init(rune, x+1+index, y)
+			chips = append(chips, newChip)
 		}
 	}
 
@@ -129,7 +138,7 @@ func (s *solver) createMoves(word []rune, pivotChip Chip) []Move {
 
 	for index, rune := range word {
 		if rune == pivotChip.Rune() {
-			chips := chipSliceAroundPiviot(rune[:index], pivotChip, rune[index+1:])
+			chips := s.chipSliceAroundPiviot(word[:index], pivotChip, word[index+1:])
 			newMove := NewMove().InitWithChips(chips)
 			if s.board.IsMoveValid(newMove) {
 				moves = append(moves, newMove)

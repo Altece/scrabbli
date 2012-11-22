@@ -1,7 +1,7 @@
 package dictionary
 
 // this is a special wildcard character
-const WILDCARD := '*'
+const WILDCARD rune = ' '
 
 // represents the interface for a dictionary trie node
 type DictNode interface {
@@ -32,31 +32,31 @@ func NewNode() *dictNode {
 }
 
 func (n *dictNode) Add(word string) {
-	var rune rune
+	var r rune
 	var rest string
 
-	switch x := len(word) {
+	switch len(word) {
 	case 0:
 		n.wordEnd = true
 		return
 	default:
-		rune = word[0]
+		r = rune(word[0])
 		rest = word[1:]
 	}
 
 	if node, ok := n.nodes[r]; ok {
-		node.Add(word[1:])
+		node.Add(rest)
 	} else {
 		node := NewNode()
 		n.nodes[r] = node
-		node.Add(word[1:])
+		node.Add(rest)
 	}
 }
 
 func (n *dictNode) Find(word string) bool {
 	if word == "" { return n.wordEnd; }
 
-	r := word[0]
+	r := rune(word[0])
 
 	if node, ok := n.nodes[r]; ok {
 		return node.Find(word[1:])
@@ -66,31 +66,25 @@ func (n *dictNode) Find(word string) bool {
 }
 
 func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
-	results := make(chan string, 100)
-	searchStart := make(chan int, 1)
-	searchFinish := make(chan int, 1)
+	results := make(chan []rune, 100)
+	signalchan := make(chan int, 100)
 
 	// make sure the results channel is eventually closed
 	go func() {
-		count := 0
+		count := <-signalchan
 		for {
-			select {
-			case s := <-searchStart:
-				count += 1
-			case s := <-searchFinish:
-				count -= 1
-			}
+			count += <-signalchan
 
 			if count == 0 {
 				close(results)
 				return
 			}
 		}
-	}
+	}()
 
 	var find func(n *dictNode, runes []rune, word []rune)
 	find = func(n *dictNode, runes []rune, word []rune) {
-		searchStart <- 1
+		signalchan <- 1
 
 		if n.wordEnd { results <- word; }
 		
@@ -99,19 +93,19 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 			if _, runeIsVisited := visitedRunes[rune]; !runeIsVisited {
 				newRunes := append(runes[:index], runes[index+1:]...)
 
-				if rune == SPECIAL {
+				if rune == WILDCARD {
 					for _, node := range n.nodes {
-						go find(node, newRunes, append(word, rune)))
+						find(node, newRunes, append(word, rune))
 					}
 				} else {
 					if node, nodeExists := n.nodes[rune]; nodeExists {
-						go find(node, newRunes, append(word, rune)))
+						find(node, newRunes, append(word, rune))
 					}
 				}
 			}			
 		}
 
-		searchFinish <- -1
+		signalchan <- -1
 	}
 
 	go find(n, runes, make([]rune, 0))
