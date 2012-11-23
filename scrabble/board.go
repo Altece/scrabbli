@@ -145,17 +145,17 @@ func (b *board) MakeMove(m Move) (int, bool) {
 }
 
 func (b *board) SliceRep() [][]interface{} {
-	representation := make([][]interface{}, b.height)
+	representation := make([][]interface{}, 0)
 
 	for y := 0; y < b.height; y+=1 {
 
-		representation[y] = make([]interface{}, b.width)
+		representation = append(representation, make([]interface{}, 0))
 		for x := 0; x < b.width; x+=1 {
 
-			if b.grid[x][y].chip == nil {
-				representation[y][x] = b.grid[x][y].chip.MapRep()
+			if b.grid[x][y].chip != nil {
+				representation[y] = append(representation[y], b.grid[x][y].chip.MapRep())
 			} else {
-				representation[y][x] = b.grid[x][y].multiplier.string()
+				representation[y] = append(representation[y], b.grid[x][y].multiplier.string())
 			}
 		}
 	}
