@@ -78,35 +78,47 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 		close(results)
 	}()
 
-	var find func(n *dictNode, runes []rune, word []rune)
-	find = func(n *dictNode, runes []rune, word []rune) {
+	resulting := func(runes, word []rune, i int) (resultingRunes, resultingWord []rune) {
+		resultingRunes = append(append(resultingRunes, runes[:i]...), runes[i+1:]...)
+
+		resultingWord = append(resultingWord, word...)
+
+		return resultingRunes, resultingWord
+	}
+
+	var find func(n *dictNode, runes, word []rune)
+	find = func(n *dictNode, runes, word []rune) {
 
 		if n.wordEnd { results <- word; }
-		
-		visitedRunes := make(map[rune]bool)
-		for index, rune := range runes {
-			if _, runeIsVisited := visitedRunes[rune]; !runeIsVisited {
-				newRunes := append(runes[:index], runes[index+1:]...)
 
-				if rune == WILDCARD {
-					for _, node := range n.nodes {
-						waitGroup.Add(1)
-						go find(node, newRunes, append(word, rune))
-					}
-				} else {
-					if node, nodeExists := n.nodes[rune]; nodeExists {
-						waitGroup.Add(1)
-						go find(node, newRunes, append(word, rune))
-					}
+		for i, r := range runes {
+			
+
+			if r == WILDCARD {
+				for _, node := range n.nodes {
+					resultingRunes, resultingWord := resulting(runes, word, i)
+
+					waitGroup.Add(1)
+					resultingWord = append(resultingWord, r)
+					go find(node, resultingRunes, resultingWord)
 				}
-			}			
+			} else {
+				resultingRunes, resultingWord := resulting(runes, word, i)
+
+				if node, nodeExists := n.nodes[r]; nodeExists {
+					waitGroup.Add(1)
+					resultingWord = append(resultingWord, r)
+					go find(node, resultingRunes, resultingWord)
+				}
+			}
 		}
 
 		waitGroup.Done()
 	}
 
 	waitGroup.Add(1)
-	go find(n, runes, make([]rune, 0))
+	var word []rune
+	go find(n, runes, word)
 
 	return results
 }
