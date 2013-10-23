@@ -5,8 +5,14 @@ type Chip interface {
 	// initialize the chip with the given rune and x y coordinate positions
 	Init(r rune, x, y int) Chip
 
-	// get thr rune from the chip
-	Rune() rune
+	// initialize the chip with a given placed rune p 
+	InitPlaced(r, p rune, x, y int) Chip
+
+	// get the rune printed on the chip
+	ChipRune() rune
+
+	// get the rune that the chip represents when placed
+	PlacedRune() rune
 
 	// get the position of the chip
 	Position() (int, int)
@@ -17,6 +23,7 @@ type Chip interface {
 	// get a map representation of the chip
 	// this will have 3 entries:
 	// 	"Rune"		- the rune for the chip
+	//  "Placed"	- the rune that the chip represents when played
 	// 	"Points" 	- the points value of the chip (without multipliers)
 	//	"X"			- the x coordinate
 	//	"Y"			- the y coordinate

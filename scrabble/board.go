@@ -89,7 +89,7 @@ func (b *board) IsMoveValid(m Move) bool {
 		if !b.WithinBounds(x, y) {
 			return false
 		} else if other := b.ChipAtSpace(x, y); other != nil {
-			if other.Rune() != chip.Rune() {
+			if other.PlacedRune() != chip.PlacedRune() {
 				return false
 			}
 		}

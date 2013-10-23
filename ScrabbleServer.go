@@ -89,10 +89,15 @@ func MoveFromInput(input string, s solver.Solver) Move {
 }
 
 func PrintMove(move Move) {
-	for c := range move.Iter() {
-		r := c.Rune()
-		if r == ' ' { r = '_'; }
-		fmt.Print(string(r))
+	if (move != nil) {
+		for c := range move.Iter() {
+			r := c.PlacedRune()
+			if r != c.ChipRune() {
+				fmt.Printf("(%s)", string(c.PlacedRune()))
+			} else {
+				fmt.Print(string(r))
+			}
+		}
 	}
 }
 
@@ -121,8 +126,10 @@ func test1(s solver.Solver) {
 	resultMove := s.SolveForChips(firstChips)
 	fmt.Println("Resulting Move:")
 	fmt.Print("\t")
-	for c := range resultMove.Iter() {
-		fmt.Print(string(c.Rune()))
+	if (resultMove != nil) {
+		for c := range resultMove.Iter() {
+			fmt.Print(string(c.ChipRune()))
+		}
 	}
 	fmt.Println("")
 }

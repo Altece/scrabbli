@@ -5,17 +5,45 @@ import "sync"
 // this is a special wildcard character
 const WILDCARD rune = ' '
 
+type RunePair struct {
+	Word 		rune
+	Combination rune
+}
+
+type RuneResult struct {
+	Word 		[]rune
+	Combination []rune
+}
+
+type StringResult struct {
+	Word 		string
+	Combination string
+}
+
+func UnzipRuneResult(result RuneResult) []RunePair {
+	var runepairs []RunePair
+	for i, _ := range result.Word {
+		runepairs = append(runepairs, RunePair{result.Word[i], result.Combination[i]})
+	}
+	return runepairs
+}
+
 // represents the interface for a dictionary trie node
 type DictNode interface {
 	// add a word to the node of a dictionary trie
 	Add(word string)
 
 	// find a word starting from the node
-	Find(word string) bool
+	// returns an array of all resulting strings and a success bool
+	Find(word string) ([]string, bool)
 
 	// find all possible dictionary word matches for the given slice of runes
-	// returns a channel of all possible rune combinations
-	FindAllPossible(runes []rune) <-chan []rune
+	// returns a channel for all possible rune combinations
+	FindAllRunes(runes []rune) <-chan RuneResult
+
+	FindAllStrings(input string) <-chan StringResult
+
+	FindAllRunesFromRunePairs(runepairs []RunePair) <-chan RuneResult
 }
 
 // a node data structure for a dictionary trie
@@ -55,20 +83,47 @@ func (n *dictNode) Add(word string) {
 	}
 }
 
-func (n *dictNode) Find(word string) bool {
-	if word == "" { return n.wordEnd; }
+func (n *dictNode) Find(word string) ([]string, bool) {
+	if word == "" { return []string{}, n.wordEnd; }
 
-	r := rune(word[0])
-
-	if node, ok := n.nodes[r]; ok {
-		return node.Find(word[1:])
+	add := func(r rune, results []string, adding []string) []string {
+		for _, word := range adding {
+			str := string(append([]rune{r}, []rune(word)...))
+			results = append(results, str)
+		}
+		if len(adding) == 0 {
+			results = append(results, string([]rune{r}))
+		}
+		return results
 	}
 
-	return false
+	r := rune(word[0])
+	if r == WILDCARD {
+		results := []string{}
+		success := false
+		for l, node := range n.nodes {
+			if result, ok := node.Find(word[1:]); ok {
+				results = add(l, results, result)
+				success = true
+			}
+		}
+		if success {
+			return results, true
+		}
+		return results, false
+	}
+
+	if node, ok := n.nodes[r]; ok {
+		if result, success := node.Find(word[1:]); success {
+			return add(r, []string{}, result), true
+		}
+	}
+
+	return []string{}, false
 }
 
-func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
-	results := make(chan []rune, 100)
+func (dict *dictNode) FindAllRunesFromRunePairs(runes []RunePair) <-chan RuneResult {
+	results := make(chan RuneResult, 100)
 
 	var waitGroup sync.WaitGroup
 
@@ -78,37 +133,37 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 		close(results)
 	}()
 
-	resulting := func(runes, word []rune, i int) (resultingRunes, resultingWord []rune) {
-		resultingRunes = append(append(resultingRunes, runes[:i]...), runes[i+1:]...)
+	placeRuneIntoResult := func(runes []RunePair, i int, r rune, result RuneResult) (leftoverRunes []RunePair, resulting RuneResult) {
+		leftoverRunes = append(append(leftoverRunes, runes[:i]...), runes[i+1:]...)
 
-		resultingWord = append(resultingWord, word...)
+		resulting.Word = append(result.Word, r)
+		resulting.Combination = append(result.Combination, runes[i].Combination)
 
-		return resultingRunes, resultingWord
+		return leftoverRunes, resulting
 	}
 
-	var find func(n *dictNode, runes, word []rune)
-	find = func(n *dictNode, runes, word []rune) {
+	var find func(n *dictNode, runes []RunePair, result RuneResult)
+	find = func(n *dictNode, runes []RunePair, result RuneResult) {
 
-		if n.wordEnd { results <- word; }
+		if n.wordEnd {
+			if _, ok := dict.Find(string(result.Word)); ok {
+				results <- result;
+			}
+		}
 
 		for i, r := range runes {
-			
 
-			if r == WILDCARD {
-				for _, node := range n.nodes {
-					resultingRunes, resultingWord := resulting(runes, word, i)
-
+			if r.Word == WILDCARD {
+				for r, node := range n.nodes {
 					waitGroup.Add(1)
-					resultingWord = append(resultingWord, r)
-					go find(node, resultingRunes, resultingWord)
+					remaining, result := placeRuneIntoResult(runes, i, r, result)
+					go find(node, remaining, result)
 				}
 			} else {
-				resultingRunes, resultingWord := resulting(runes, word, i)
-
-				if node, nodeExists := n.nodes[r]; nodeExists {
+				remaining, result := placeRuneIntoResult(runes, i, r.Word, result)
+				if node, nodeExists := n.nodes[r.Word]; nodeExists {
 					waitGroup.Add(1)
-					resultingWord = append(resultingWord, r)
-					go find(node, resultingRunes, resultingWord)
+					go find(node, remaining, result)
 				}
 			}
 		}
@@ -117,8 +172,27 @@ func (n *dictNode) FindAllPossible(runes []rune) <-chan []rune {
 	}
 
 	waitGroup.Add(1)
-	var word []rune
-	go find(n, runes, word)
+	var result RuneResult
+	go find(dict, runes, result)
 
 	return results
+}
+
+func (n *dictNode) FindAllRunes(runes []rune) <-chan RuneResult {
+	var runepairs []RunePair
+	for _, r := range runes {
+		runepairs = append(runepairs, RunePair{r,r})
+	}
+	return n.FindAllRunesFromRunePairs(runepairs);
+}
+
+func (n *dictNode) FindAllStrings(input string) <-chan StringResult {
+	results := make(chan StringResult, 100)
+	go func() {
+		for result := range n.FindAllRunes([]rune(input)) {
+			results <- StringResult{string(result.Word), string(result.Combination)}
+		}
+		close(results)
+	}()
+	return results;
 }

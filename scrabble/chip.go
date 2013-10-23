@@ -70,7 +70,8 @@ func points() map[rune]int {
 
 // a struct that represents a chip on a scrabble board
 type chip struct {
-	r 					rune 	// the character represented by the chip
+	r					rune 	// the character represented by the chip
+	placedRune			rune	// the character represented by the chip after placed
 	x, y 				int 	// the x y coordinate position of the chip
 }
 
@@ -89,12 +90,23 @@ func NewChip() Chip {
 
 func (c *chip) Init(r rune, x, y int) Chip {
 	c.r = r
+	c.placedRune = r;
 	c.x, c.y = x, y
 	return c
 }
 
-func (c *chip) Rune() rune {
+func (c *chip) InitPlaced(r, p rune, x, y int) Chip {
+	c.Init(r, x, y)
+	c.placedRune = p;
+	return c
+}
+
+func (c *chip) ChipRune() rune {
 	return c.r
+}
+
+func (c *chip) PlacedRune() rune {
+	return c.placedRune
 }
 
 func (c *chip) Position() (int, int) {
@@ -113,6 +125,7 @@ func (c *chip) Points() int {
 func (c *chip) MapRep() map[string]interface{} {
 	representation := map[string]interface{} {
 		"Rune" 		: c.r,
+		"Placed"	: c.placedRune,
 		"Points" 	: c.Points(),
 		"X" 		: c.x,
 		"Y" 		: c.y 	}
