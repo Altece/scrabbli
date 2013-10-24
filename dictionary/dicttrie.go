@@ -136,8 +136,8 @@ func (dict *dictNode) FindAllRunesFromRunePairs(runes []RunePair) <-chan RuneRes
 	placeRuneIntoResult := func(runes []RunePair, i int, r rune, result RuneResult) (leftoverRunes []RunePair, resulting RuneResult) {
 		leftoverRunes = append(append(leftoverRunes, runes[:i]...), runes[i+1:]...)
 
-		resulting.Word = append(result.Word, r)
-		resulting.Combination = append(result.Combination, runes[i].Combination)
+		resulting.Word = append(append(resulting.Word, result.Word...), r)
+		resulting.Combination = append(append(resulting.Combination, result.Combination...), runes[i].Combination)
 
 		return leftoverRunes, resulting
 	}
@@ -146,9 +146,7 @@ func (dict *dictNode) FindAllRunesFromRunePairs(runes []RunePair) <-chan RuneRes
 	find = func(n *dictNode, runes []RunePair, result RuneResult) {
 
 		if n.wordEnd {
-			if _, ok := dict.Find(string(result.Word)); ok {
-				results <- result;
-			}
+			results <- result;
 		}
 
 		for i, r := range runes {

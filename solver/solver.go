@@ -14,6 +14,9 @@ type Solver interface {
 	// find the next best move for the given set of chips
 	// and all the available chips on the baord
 	SolveForChips(chips []Chip) Move
+
+	// find the next best move for a set of chips represented by the given runes
+	SolveForRunes(runes []rune) Move
 }
 
 // data for a solver
@@ -35,20 +38,34 @@ func (s *solver) Init(board Board, dictionaryFilename string) (Solver, bool) {
 	return s, success
 }
 
-func (s *solver) SolveForChips(chips []Chip) Move {
-	// create the rune slice
-	runes := make([]rune, len(chips))
-	for index, c := range chips {
-		runes[index] = c.ChipRune()
-	}
-
+func (s *solver) SolveForRunes(runes []rune) Move {
 	// all possible solutions
-	moves := make([]Move, 0)
+	var moves []Move
 
 	// function to generate moves for the given runes around the pivot chip
 	// the pivot chip's rune must be in the rues slice
-	genMoves := func(runes []rune, pivotChip Chip) []Move {
-		for possible := range s.dict.FindAllRunes(runes) {
+	genMoves := func(runes []rune, pivotChip Chip, moves []Move) []Move {
+		possibleChan := func() <-chan dictionary.RuneResult {
+			if pivotChip.ChipRune() != pivotChip.PlacedRune() {
+				var runepairs []dictionary.RunePair
+				pivotChipFound := false
+				for _, r := range runes {
+					var next dictionary.RunePair
+					if !pivotChipFound && r == pivotChip.ChipRune() {
+						next.Word = pivotChip.PlacedRune()
+						next.Combination = r
+						pivotChipFound = true
+					} else {
+						next.Word = r
+						next.Combination = r
+					}
+					runepairs = append(runepairs, next)
+				}
+				return s.dict.FindAllRunesFromRunePairs(runepairs)
+			}
+			return s.dict.FindAllRunes(runes)
+		}()
+		for possible := range possibleChan {
 			moves = append(moves, s.createMoves(possible, pivotChip)...)
 		}
 		return moves
@@ -59,19 +76,29 @@ func (s *solver) SolveForChips(chips []Chip) Move {
 		if availablePiece != nil { // if there are pieces
 
 			runes = append(runes, availablePiece.PlacedRune())
-			moves = genMoves(runes, availablePiece)
+			moves = genMoves(runes, availablePiece, moves)
 
 		} else { // if there are no pieces
 			// make a potential pivot piece from every rune
 			x, y := s.board.Center()
 			for _, r := range runes {
 				chip := NewChip().Init(r, x, y)
-				moves = genMoves(runes, chip)
+				moves = genMoves(runes, chip, moves)
 			}
 		}
 	}
 
 	return s.findBestMove(moves)
+}
+
+func (s *solver) SolveForChips(chips []Chip) Move {
+	// create the rune slice
+	runes := make([]rune, len(chips))
+	for index, c := range chips {
+		runes[index] = c.ChipRune()
+	}
+
+	return s.SolveForRunes(runes)
 }
 
 // a private enumeration for directionality of moves
@@ -108,22 +135,22 @@ func (s *solver) chipSliceAroundPiviot(head []dictionary.RunePair, pivotChip Chi
 	switch s.moveDirection(pivotChip) {
 	case down:
 		for index, runepair := range head {
-			newChip := NewChip().InitPlaced(runepair.Word, runepair.Combination, x, y-(len(head)-index))
+			newChip := NewChip().InitPlaced(runepair.Combination, runepair.Word, x, y-(len(head)-index))
 			chips = append(chips, newChip)
 		}
 		chips = append(chips, pivotChip)
 		for index, runepair := range tail {
-			newChip := NewChip().InitPlaced(runepair.Word, runepair.Combination, x, y+1+index)
+			newChip := NewChip().InitPlaced(runepair.Combination, runepair.Word, x, y+1+index)
 			chips = append(chips, newChip)
 		}
 	case across:
 		for index, runepair := range head {
-			newChip := NewChip().InitPlaced(runepair.Word, runepair.Combination, x-(len(head)-index), y)
+			newChip := NewChip().InitPlaced(runepair.Combination, runepair.Word, x-(len(head)-index), y)
 			chips = append(chips, newChip)
 		}
 		chips = append(chips, pivotChip)
 		for index, runepair := range tail {
-			newChip := NewChip().InitPlaced(runepair.Word, runepair.Combination, x+1+index, y)
+			newChip := NewChip().InitPlaced(runepair.Combination, runepair.Word, x+1+index, y)
 			chips = append(chips, newChip)
 		}
 	}
@@ -134,7 +161,7 @@ func (s *solver) chipSliceAroundPiviot(head []dictionary.RunePair, pivotChip Chi
 // create a move using the given runes
 // the pivot chip has a rune that exists somewhere in the runes slice
 func (s *solver) createMoves(word dictionary.RuneResult, pivotChip Chip) []Move {
-	moves := make([]Move, 0)
+	var moves []Move
 
 	runepairs := dictionary.UnzipRuneResult(word)
 
@@ -147,6 +174,7 @@ func (s *solver) createMoves(word dictionary.RuneResult, pivotChip Chip) []Move 
 			}
 		}
 	}
+
 	return moves
 }
 

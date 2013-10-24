@@ -109,8 +109,13 @@ func PrintBoard(b Board) {
 				fmt.Print(" _ ")
 			case map[string]interface{}:
 				m := item.(map[string]interface{})
-				rune := m["Rune"].(rune)
-				fmt.Print(" "); fmt.Print(string(rune)); fmt.Print(" ")
+				r := m["Rune"].(rune)
+				p := m["Placed"].(rune)
+				if r == p {
+					fmt.Printf(" %s ",string(r))
+				} else {
+					fmt.Printf("(%s)",string(p))
+				}
 			}
 		}
 		fmt.Println("")
@@ -119,11 +124,7 @@ func PrintBoard(b Board) {
 
 func test1(s solver.Solver) {
 	fmt.Println("Given Chips: FORESTRY")
-	var firstChips []Chip
-	for _, r := range []rune{'F', 'O', 'R', 'E', 'S', 'T', 'R', 'Y'} {
-		firstChips = append(firstChips, NewChip().Init(r, 0, 0))
-	}
-	resultMove := s.SolveForChips(firstChips)
+	resultMove := s.SolveForRunes([]rune("FORESTRY"))
 	fmt.Println("Resulting Move:")
 	fmt.Print("\t")
 	if (resultMove != nil) {
@@ -136,11 +137,7 @@ func test1(s solver.Solver) {
 
 func test2(s solver.Solver) {
 	fmt.Println("Given Chips: F O R E S T R _")
-	var firstChips []Chip
-	for _, r := range []rune{'F', 'O', 'R', 'E', 'S', 'T', 'R', ' '} {
-		firstChips = append(firstChips, NewChip().Init(r, 0, 0))
-	}
-	resultMove := s.SolveForChips(firstChips)
+	resultMove := s.SolveForRunes([]rune("FORESTR "))
 	fmt.Println("Resulting Move:")
 	fmt.Print("\t")
 	PrintMove(resultMove)
@@ -149,11 +146,7 @@ func test2(s solver.Solver) {
 
 func test3(s solver.Solver) {
 	fmt.Println("Given Chips: _ O R E S T R _")
-	var firstChips []Chip
-	for _, r := range []rune{' ', 'O', 'R', 'E', 'S', 'T', 'R', ' '} {
-		firstChips = append(firstChips, NewChip().Init(r, 0, 0))
-	}
-	resultMove := s.SolveForChips(firstChips)
+	resultMove := s.SolveForRunes([]rune(" ORESTR "))
 	fmt.Println("Resulting Move:")
 	fmt.Print("\t")
 	PrintMove(resultMove)
