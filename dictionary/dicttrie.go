@@ -15,17 +15,17 @@ type RuneResult struct {
 	Combination []rune
 }
 
-type StringResult struct {
-	Word 		string
-	Combination string
-}
-
-func UnzipRuneResult(result RuneResult) []RunePair {
+func (result RuneResult) Unzip() []RunePair {
 	var runepairs []RunePair
 	for i, _ := range result.Word {
 		runepairs = append(runepairs, RunePair{result.Word[i], result.Combination[i]})
 	}
 	return runepairs
+}
+
+type StringResult struct {
+	Word 		string
+	Combination string
 }
 
 // represents the interface for a dictionary trie node

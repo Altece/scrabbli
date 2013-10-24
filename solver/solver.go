@@ -163,7 +163,7 @@ func (s *solver) chipSliceAroundPiviot(head []dictionary.RunePair, pivotChip Chi
 func (s *solver) createMoves(word dictionary.RuneResult, pivotChip Chip) []Move {
 	var moves []Move
 
-	runepairs := dictionary.UnzipRuneResult(word)
+	runepairs := word.Unzip()
 
 	for index, runepair := range runepairs {
 		if runepair.Word == pivotChip.PlacedRune() {
